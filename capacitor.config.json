@@ -1,0 +1,16 @@
+{
+  "appId": "com.patrik.flapfoco",
+  "appName": "FlapFoco",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "AdMob": {
+      "appId": {
+        "android": "ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY"
+      }
+    }
+  }
+}
