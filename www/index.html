@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FlapFoco</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#1a1a2e; font-family:'Segoe UI',Arial,sans-serif; }
+  #gameCanvas { display:block; margin:0 auto; background:linear-gradient(#4ec0ca,#8fd8e0); touch-action:manipulation; }
+  #ui { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+  .btn { pointer-events:auto; }
+  #topBar { position:absolute; top:16px; left:0; width:100%; display:flex; justify-content:space-between; padding:0 16px; }
+  #scoreDisplay { color:#fff; font-size:32px; font-weight:bold; text-shadow:2px 2px 4px rgba(0,0,0,.4); text-align:center; width:100%; position:absolute; top:16px; }
+  .coinCount { color:#ffd700; font-size:18px; font-weight:bold; background:rgba(0,0,0,.35); padding:6px 12px; border-radius:20px; }
+  #menuScreen, #gameOverScreen, #shopScreen, #achievementPopup {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); color:#fff; text-align:center; pointer-events:auto;
+  }
+  .hidden { display:none !important; }
+  h1 { font-size:42px; color:#ffcc00; text-shadow:3px 3px 0 #ff4500; margin-bottom:10px; }
+  .bigBtn {
+    background:#ff4500; color:#fff; border:none; padding:14px 32px; font-size:20px;
+    border-radius:12px; margin:8px; font-weight:bold; box-shadow:0 4px 0 #b33000; cursor:pointer;
+  }
+  .bigBtn:active { transform:translateY(3px); box-shadow:0 1px 0 #b33000; }
+  .smallBtn {
+    background:#333; color:#fff; border:none; padding:8px 18px; font-size:14px;
+    border-radius:8px; margin:6px; cursor:pointer;
+  }
+  .skinRow { display:flex; gap:12px; margin:14px 0; flex-wrap:wrap; justify-content:center; max-width:320px; }
+  .skinItem { background:rgba(255,255,255,.1); border-radius:10px; padding:8px; width:80px; }
+  .skinItem canvas { width:40px; height:40px; }
+  .skinItem.locked { opacity:.5; }
+  #achievementPopup { background:transparent; align-items:flex-start; pointer-events:none; }
+  .achToast {
+    background:#ffd700; color:#1a1a2e; padding:12px 20px; border-radius:10px; font-weight:bold;
+    margin-top:60px; box-shadow:0 4px 10px rgba(0,0,0,.3); animation: slideDown .4s ease, fadeOut .4s ease 2.4s forwards;
+  }
+  @keyframes slideDown { from{transform:translateY(-40px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+  @keyframes fadeOut { to{opacity:0;} }
+  #reviveTimer { font-size:14px; color:#ccc; margin-top:6px; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="ui">
+  <div id="topBar">
+    <div class="coinCount" id="coinCount">🪙 0</div>
+    <div class="coinCount" id="bestCount">🏆 0</div>
+  </div>
+  <div id="scoreDisplay" class="hidden">0</div>
+
+  <div id="menuScreen">
+    <h1>FlapFoco</h1>
+    <button class="bigBtn" id="playBtn">▶ Jogar</button>
+    <button class="smallBtn" id="shopBtn">🎨 Skins</button>
+  </div>
+
+  <div id="gameOverScreen" class="hidden">
+    <h1>Fim de Jogo</h1>
+    <p id="finalScore" style="font-size:26px;margin-bottom:4px;"></p>
+    <p id="newRecord" class="hidden" style="color:#ffd700;font-weight:bold;">🏆 Novo recorde!</p>
+    <button class="bigBtn" id="reviveBtn">🎥 Reviver (assistir vídeo)</button>
+    <div id="reviveTimer" class="hidden"></div>
+    <button class="bigBtn" id="restartBtn" style="background:#2196f3;box-shadow:0 4px 0 #0d5aa0;">🔄 Jogar de novo</button>
+    <button class="smallBtn" id="menuBtn">Menu</button>
+  </div>
+
+  <div id="shopScreen" class="hidden">
+    <h1 style="font-size:28px;">Skins</h1>
+    <div class="skinRow" id="skinRow"></div>
+    <button class="smallBtn" id="closeShopBtn">Fechar</button>
+  </div>
+
+  <div id="achievementPopup"></div>
+</div>
+
+<script>
+/* =========================================================
+   FLAPFOCO — engine + melhorias
+   - Dificuldade progressiva
+   - Skins desbloqueáveis (moedas ou ad assistido)
+   - Revive assistindo ad (rewarded)
+   - Sons e partículas ao pontuar
+   - Interstitial a cada 3 game overs
+   - Recorde salvo local + conquistas
+   - Hooks de AdMob e Analytics prontos pra plugin nativo
+========================================================= */
+
+// ---------- CONFIG ----------
+const CONFIG = {
+  gravity: 0.45,
+  flapForce: -8,
+  pipeGapBase: 170,
+  pipeGapMin: 120,
+  pipeSpeedBase: 2.6,
+  pipeSpeedMax: 4.6,
+  pipeSpacing: 220,
+  difficultyRampScore: 25, // a cada N pontos, aumenta dificuldade
+  interstitialEveryNGameOvers: 3,
+  reviveInvincibleMs: 1000
+};
+
+const SKINS = [
+  { id:'orange', name:'Foco', color:'#ff4500', cost:0 },
+  { id:'blue',   name:'Azul', color:'#2196f3', cost:50 },
+  { id:'green',  name:'Verde', color:'#4caf50', cost:80 },
+  { id:'purple', name:'Roxo', color:'#9c27b0', cost:120 },
+  { id:'gold',   name:'Ouro', color:'#ffd700', cost:200 }
+];
+
+const ACHIEVEMENTS = [
+  { id:'score10', label:'🥉 10 pontos!', check: s => s.best >= 10 },
+  { id:'score50', label:'🥈 50 pontos!', check: s => s.best >= 50 },
+  { id:'score100', label:'🥇 100 pontos!', check: s => s.best >= 100 }
+];
+
+// ---------- STORAGE ----------
+const store = {
+  get(key, def) {
+    try { const v = localStorage.getItem(key); return v === null ? def : JSON.parse(v); }
+    catch(e){ return def; }
+  },
+  set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e){} }
+};
+
+let state = {
+  best: store.get('flapfoco_best', 0),
+  coins: store.get('flapfoco_coins', 0),
+  ownedSkins: store.get('flapfoco_owned_skins', ['orange']),
+  currentSkin: store.get('flapfoco_current_skin', 'orange'),
+  unlockedAch: store.get('flapfoco_achievements', []),
+  gameOverCount: store.get('flapfoco_go_count', 0)
+};
+
+// ---------- ANALYTICS / ADS HOOKS ----------
+// Substituir por chamadas reais do plugin (ex: cordova-plugin-admob ou capacitor-admob-ads)
+const Ads = {
+  showInterstitial() {
+    console.log('[ADS] showInterstitial()'); // window.admob?.interstitial?.show()
+  },
+  showRewarded(onReward) {
+    console.log('[ADS] showRewarded()');
+    // window.admob?.rewarded?.show().then(() => onReward())
+    // Fallback simulado pra teste sem SDK nativo:
+    setTimeout(onReward, 600);
+  },
+  showBanner() {
+    console.log('[ADS] showBanner()');
+  }
+};
+const Analytics = {
+  log(event, params) {
+    console.log('[ANALYTICS]', event, params || {});
+    // window.firebase?.analytics?.logEvent(event, params)
+  }
+};
+
+// ---------- CANVAS SETUP ----------
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---------- AUDIO (WebAudio, sem arquivos externos) ----------
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function ensureAudio() { if (!actx) actx = new AudioCtx(); }
+function beep(freq, duration, type='sine', vol=0.15) {
+  if (!actx) return;
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.value = vol;
+  o.connect(g); g.connect(actx.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + duration);
+  o.stop(actx.currentTime + duration);
+}
+const Sound = {
+  flap: () => beep(400, 0.08, 'square', 0.08),
+  score: () => beep(880, 0.12, 'sine', 0.15),
+  hit: () => beep(120, 0.3, 'sawtooth', 0.18),
+  achievement: () => { beep(660,0.1); setTimeout(()=>beep(880,0.15),100); }
+};
+
+// ---------- PARTICLES ----------
+let particles = [];
+function spawnParticles(x, y, color) {
+  for (let i=0;i<10;i++) {
+    particles.push({
+      x, y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4-1,
+      life:30, color
+    });
+  }
+}
+function updateParticles() {
+  particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life--; });
+  particles = particles.filter(p => p.life > 0);
+}
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(p.life/30, 0);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ---------- BIRD ----------
+let bird, pipes, score, difficultyLevel, invincibleUntil, gameRunning, gamePaused;
+
+function currentSkinColor() {
+  const s = SKINS.find(s => s.id === state.currentSkin) || SKINS[0];
+  return s.color;
+}
+
+function resetGame() {
+  bird = { x: canvas.width*0.25, y: canvas.height/2, vy:0, r:16, rot:0 };
+  pipes = [];
+  score = 0;
+  difficultyLevel = 0;
+  invincibleUntil = 0;
+  particles = [];
+  spawnPipe();
+}
+
+function spawnPipe() {
+  const gap = Math.max(CONFIG.pipeGapBase - difficultyLevel*6, CONFIG.pipeGapMin);
+  const margin = 60;
+  const gapY = margin + Math.random()*(canvas.height - margin*2 - gap);
+  pipes.push({ x: canvas.width + 40, gapY, gap, passed:false, w:52 });
+}
+
+function pipeSpeed() {
+  return Math.min(CONFIG.pipeSpeedBase + difficultyLevel*0.18, CONFIG.pipeSpeedMax);
+}
+
+function flap() {
+  ensureAudio();
+  if (!gameRunning) return;
+  bird.vy = CONFIG.flapForce;
+  Sound.flap();
+}
+
+function updateGame() {
+  if (!gameRunning || gamePaused) return;
+
+  bird.vy += CONFIG.gravity;
+  bird.y += bird.vy;
+  bird.rot = Math.max(-30, Math.min(70, bird.vy * 4));
+
+  const speed = pipeSpeed();
+  pipes.forEach(p => p.x -= speed);
+  if (pipes.length && pipes[pipes.length-1].x < canvas.width - CONFIG.pipeSpacing) spawnPipe();
+  pipes = pipes.filter(p => p.x > -80);
+
+  const invincible = Date.now() < invincibleUntil;
+
+  // colisão com chão/teto
+  if (!invincible && (bird.y - bird.r < 0 || bird.y + bird.r > canvas.height)) {
+    return endGame();
+  }
+
+  // colisão com canos + pontuação
+  pipes.forEach(p => {
+    if (!p.passed && p.x + p.w < bird.x - bird.r) {
+      p.passed = true;
+      score++;
+      Sound.score();
+      spawnParticles(bird.x, bird.y, currentSkinColor());
+      state.coins += 1;
+      store.set('flapfoco_coins', state.coins);
+      if (score % CONFIG.difficultyRampScore === 0) difficultyLevel++;
+    }
+    const inX = bird.x + bird.r > p.x && bird.x - bird.r < p.x + p.w;
+    const inGapTop = bird.y - bird.r < p.gapY;
+    const inGapBottom = bird.y + bird.r > p.gapY + p.gap;
+    if (!invincible && inX && (inGapTop || inGapBottom)) {
+      return endGame();
+    }
+  });
+
+  updateParticles();
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
+}
+
+function endGame() {
+  gameRunning = false;
+  Sound.hit();
+  const isNewRecord = score > state.best;
+  if (isNewRecord) { state.best = score; store.set('flapfoco_best', state.best); }
+  document.getElementById('bestCount').textContent = '🏆 ' + state.best;
+
+  checkAchievements();
+
+  state.gameOverCount++;
+  store.set('flapfoco_go_count', state.gameOverCount);
+
+  Analytics.log('game_over', { score, best: state.best });
+
+  document.getElementById('scoreDisplay').classList.add('hidden');
+  document.getElementById('finalScore').textContent = 'Pontuação: ' + score;
+  document.getElementById('newRecord').classList.toggle('hidden', !isNewRecord);
+  document.getElementById('gameOverScreen').classList.remove('hidden');
+
+  const reviveBtn = document.getElementById('reviveBtn');
+  reviveBtn.classList.remove('hidden');
+  document.getElementById('reviveTimer').classList.add('hidden');
+
+  if (state.gameOverCount % CONFIG.interstitialEveryNGameOvers === 0) {
+    Ads.showInterstitial();
+  }
+}
+
+function checkAchievements() {
+  ACHIEVEMENTS.forEach(a => {
+    if (!state.unlockedAch.includes(a.id) && a.check(state)) {
+      state.unlockedAch.push(a.id);
+      store.set('flapfoco_achievements', state.unlockedAch);
+      showAchievementToast(a.label);
+    }
+  });
+}
+
+function showAchievementToast(label) {
+  Sound.achievement();
+  const el = document.createElement('div');
+  el.className = 'achToast';
+  el.textContent = label;
+  document.getElementById('achievementPopup').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ---------- DRAW ----------
+function drawBird() {
+  ctx.save();
+  ctx.translate(bird.x, bird.y);
+  ctx.rotate(bird.rot * Math.PI/180);
+  const invincible = Date.now() < invincibleUntil;
+  ctx.globalAlpha = invincible ? (Math.sin(Date.now()/50)*0.3+0.7) : 1;
+  ctx.fillStyle = currentSkinColor();
+  ctx.beginPath();
+  ctx.arc(0,0,bird.r,0,Math.PI*2);
+  ctx.fill();
+  // olho
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(6,-4,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(8,-4,2.5,0,Math.PI*2); ctx.fill();
+  // bico
+  ctx.fillStyle = '#ffa500';
+  ctx.beginPath();
+  ctx.moveTo(bird.r-2,-2); ctx.lineTo(bird.r+10,2); ctx.lineTo(bird.r-2,6);
+  ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawPipes() {
+  ctx.fillStyle = '#3ba55c';
+  ctx.strokeStyle = '#2d7d46';
+  ctx.lineWidth = 3;
+  pipes.forEach(p => {
+    ctx.fillRect(p.x, 0, p.w, p.gapY);
+    ctx.strokeRect(p.x, 0, p.w, p.gapY);
+    ctx.fillRect(p.x, p.gapY + p.gap, p.w, canvas.height - (p.gapY + p.gap));
+    ctx.strokeRect(p.x, p.gapY + p.gap, p.w, canvas.height - (p.gapY + p.gap));
+  });
+}
+
+function loop() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  updateGame();
+  drawPipes();
+  drawBird();
+  drawParticles();
+  requestAnimationFrame(loop);
+}
+
+// ---------- UI WIRING ----------
+document.getElementById('bestCount').textContent = '🏆 ' + state.best;
+document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
+
+function startGame() {
+  document.getElementById('menuScreen').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('scoreDisplay').classList.remove('hidden');
+  resetGame();
+  gameRunning = true;
+  Analytics.log('game_start');
+}
+
+document.getElementById('playBtn').addEventListener('click', () => { ensureAudio(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('menuScreen').classList.remove('hidden');
+});
+
+document.getElementById('reviveBtn').addEventListener('click', function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = '⏳ Carregando vídeo...';
+  Ads.showRewarded(() => {
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('scoreDisplay').classList.remove('hidden');
+    bird.y = canvas.height/2;
+    bird.vy = 0;
+    invincibleUntil = Date.now() + CONFIG.reviveInvincibleMs;
+    gameRunning = true;
+    btn.disabled = false;
+    btn.textContent = '🎥 Reviver (assistir vídeo)';
+    Analytics.log('revive_used');
+  });
+});
+
+// Input: toque/clique/espaço
+canvas.addEventListener('pointerdown', flap);
+window.addEventListener('keydown', e => { if (e.code === 'Space') flap(); });
+
+// ---------- SHOP ----------
+function renderShop() {
+  const row = document.getElementById('skinRow');
+  row.innerHTML = '';
+  SKINS.forEach(skin => {
+    const owned = state.ownedSkins.includes(skin.id);
+    const div = document.createElement('div');
+    div.className = 'skinItem' + (owned ? '' : ' locked');
+    const c = document.createElement('canvas');
+    c.width = 40; c.height = 40;
+    const cctx = c.getContext('2d');
+    cctx.fillStyle = skin.color;
+    cctx.beginPath(); cctx.arc(20,20,16,0,Math.PI*2); cctx.fill();
+    div.appendChild(c);
+    const label = document.createElement('div');
+    label.style.fontSize = '11px';
+    label.style.marginTop = '4px';
+    label.textContent = owned ? skin.name : (skin.name + ' (🪙' + skin.cost + ')');
+    div.appendChild(label);
+    div.addEventListener('click', () => {
+      if (owned) {
+        state.currentSkin = skin.id;
+        store.set('flapfoco_current_skin', skin.id);
+        renderShop();
+      } else if (state.coins >= skin.cost) {
+        state.coins -= skin.cost;
+        state.ownedSkins.push(skin.id);
+        store.set('flapfoco_coins', state.coins);
+        store.set('flapfoco_owned_skins', state.ownedSkins);
+        document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
+        renderShop();
+      } else {
+        // moedas insuficientes -> oferecer ad assistido pra ganhar moedas
+        Ads.showRewarded(() => {
+          state.coins += 30;
+          store.set('flapfoco_coins', state.coins);
+          document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
+          renderShop();
+        });
+      }
+    });
+    row.appendChild(div);
+  });
+}
+
+document.getElementById('shopBtn').addEventListener('click', () => {
+  renderShop();
+  document.getElementById('shopScreen').classList.remove('hidden');
+});
+document.getElementById('closeShopBtn').addEventListener('click', () => {
+  document.getElementById('shopScreen').classList.add('hidden');
+});
+
+// ---------- START ----------
+Ads.showBanner();
+loop();
+</script>
+</body>
+</html>
