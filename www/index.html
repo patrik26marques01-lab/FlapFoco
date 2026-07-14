@@ -1,4 +1,4 @@
-consttentSkinColorentSkinColortionicultyLevelYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -78,7 +78,7 @@ consttentSkinColorentSkinColortionicultyLevelYPE html>
 </div>
 
 <script>
- window.onerror = function(msg, url, line) { document.body.innerHTML = '<div style="color:#fff;background:red;padding:20px;font-size:16px;">ERRO: ' + msg + ' (linha ' + line + ')</div>'; return true; };
+window.onerror = function(msg, url, line) { document.body.innerHTML = '<div style="color:#fff;background:red;padding:20px;font-size:16px;">ERRO: ' + msg + ' (linha ' + line + ')</div>'; return true; };
 /* =========================================================
    FLAPFOCO — engine + melhorias
    - Dificuldade progressiva
@@ -137,15 +137,12 @@ let state = {
 };
 
 // ---------- ANALYTICS / ADS HOOKS ----------
-// Substituir por chamadas reais do plugin (ex: cordova-plugin-admob ou capacitor-admob-ads)
 const Ads = {
   showInterstitial() {
-    console.log('[ADS] showInterstitial()'); // window.admob?.interstitial?.show()
+    console.log('[ADS] showInterstitial()');
   },
   showRewarded(onReward) {
     console.log('[ADS] showRewarded()');
-    // window.admob?.rewarded?.show().then(() => onReward())
-    // Fallback simulado pra teste sem SDK nativo:
     setTimeout(onReward, 600);
   },
   showBanner() {
@@ -155,7 +152,6 @@ const Ads = {
 const Analytics = {
   log(event, params) {
     console.log('[ANALYTICS]', event, params || {});
-    // window.firebase?.analytics?.logEvent(event, params)
   }
 };
 
@@ -169,7 +165,7 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// ---------- AUDIO (WebAudio, sem arquivos externos) ----------
+// ---------- AUDIO ----------
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let actx = null;
 function ensureAudio() { if (!actx) actx = new AudioCtx(); }
@@ -214,8 +210,8 @@ function drawParticles() {
   ctx.globalAlpha = 1;
 }
 
-// ---------- BdifficultyLeve
- let bird = { x:0, y:0, vy:0, r:16, rot:0 }, pipes = [], score = 0, difficultyLevel = 0, invincibleUntil = 0, gameRunning = false, gamePaused = false;
+// ---------- BIRD ----------
+let bird = { x:0, y:0, vy:0, r:16, rot:0 }, pipes = [], score = 0, difficultyLevel = 0, invincibleUntil = 0, gameRunning = false, gamePaused = false;
 
 function currentSkinColor() {
   const s = SKINS.find(s => s.id === state.currentSkin) || SKINS[0];
@@ -264,12 +260,10 @@ function updateGame() {
 
   const invincible = Date.now() < invincibleUntil;
 
-  // colisão com chão/teto
   if (!invincible && (bird.y - bird.r < 0 || bird.y + bird.r > canvas.height)) {
     return endGame();
   }
 
-  // colisão com canos + pontuação
   pipes.forEach(p => {
     if (!p.passed && p.x + p.w < bird.x - bird.r) {
       p.passed = true;
@@ -351,12 +345,10 @@ function drawBird() {
   ctx.beginPath();
   ctx.arc(0,0,bird.r,0,Math.PI*2);
   ctx.fill();
-  // olho
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(6,-4,5,0,Math.PI*2); ctx.fill();
   ctx.fillStyle = '#000';
   ctx.beginPath(); ctx.arc(8,-4,2.5,0,Math.PI*2); ctx.fill();
-  // bico
   ctx.fillStyle = '#ffa500';
   ctx.beginPath();
   ctx.moveTo(bird.r-2,-2); ctx.lineTo(bird.r+10,2); ctx.lineTo(bird.r-2,6);
@@ -423,7 +415,6 @@ document.getElementById('reviveBtn').addEventListener('click', function() {
   });
 });
 
-// Input: toque/clique/espaço
 canvas.addEventListener('pointerdown', flap);
 window.addEventListener('keydown', e => { if (e.code === 'Space') flap(); });
 
@@ -459,7 +450,6 @@ function renderShop() {
         document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
         renderShop();
       } else {
-        // moedas insuficientes -> oferecer ad assistido pra ganhar moedas
         Ads.showRewarded(() => {
           state.coins += 30;
           store.set('flapfoco_coins', state.coins);
