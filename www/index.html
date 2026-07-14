@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+consttentSkinColorentSkinColortionicultyLevelYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -214,8 +214,8 @@ function drawParticles() {
   ctx.globalAlpha = 1;
 }
 
-// ---------- BIRD ----------
-let bird, pipes, score, difficultyLevel, invincibleUntil, gameRunning, gamePaused;
+// ---------- BdifficultyLeve
+ let bird = { x:0, y:0, vy:0, r:16, rot:0 }, pipes = [], score = 0, difficultyLevel = 0, invincibleUntil = 0, gameRunning = false, gamePaused = false;
 
 function currentSkinColor() {
   const s = SKINS.find(s => s.id === state.currentSkin) || SKINS[0];
