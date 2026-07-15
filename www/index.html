@@ -5,117 +5,281 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>FlapFoco</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#1a1a2e; font-family:'Segoe UI',Arial,sans-serif; }
-  #gameCanvas { display:block; margin:0 auto; background:linear-gradient(#4ec0ca,#8fd8e0); touch-action:manipulation; }
-  #ui { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; }
-  .btn { pointer-events:auto; }
-  #topBar { position:absolute; top:16px; left:0; width:100%; display:flex; justify-content:space-between; padding:0 16px; }
-  #scoreDisplay { color:#fff; font-size:32px; font-weight:bold; text-shadow:2px 2px 4px rgba(0,0,0,.4); text-align:center; width:100%; position:absolute; top:16px; }
-  .coinCount { color:#ffd700; font-size:18px; font-weight:bold; background:rgba(0,0,0,.35); padding:6px 12px; border-radius:20px; }
-  #menuScreen, #gameOverScreen, #shopScreen, #achievementPopup {
-    position:absolute; top:0; left:0; width:100%; height:100%;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.55); color:#fff; text-align:center; pointer-events:auto;
-  }
-  .hidden { display:none !important; }
-  h1 { font-size:42px; color:#ffcc00; text-shadow:3px 3px 0 #ff4500; margin-bottom:10px; }
-  .bigBtn {
-    background:#ff4500; color:#fff; border:none; padding:14px 32px; font-size:20px;
-    border-radius:12px; margin:8px; font-weight:bold; box-shadow:0 4px 0 #b33000; cursor:pointer;
-  }
-  .bigBtn:active { transform:translateY(3px); box-shadow:0 1px 0 #b33000; }
-  .smallBtn {
-    background:#333; color:#fff; border:none; padding:8px 18px; font-size:14px;
-    border-radius:8px; margin:6px; cursor:pointer;
-  }
-  .skinRow { display:flex; gap:12px; margin:14px 0; flex-wrap:wrap; justify-content:center; max-width:320px; }
-  .skinItem { background:rgba(255,255,255,.1); border-radius:10px; padding:8px; width:80px; }
-  .skinItem canvas { width:40px; height:40px; }
-  .skinItem.locked { opacity:.5; }
-  #achievementPopup { background:transparent; align-items:flex-start; pointer-events:none; }
-  .achToast {
-    background:#ffd700; color:#1a1a2e; padding:12px 20px; border-radius:10px; font-weight:bold;
-    margin-top:60px; box-shadow:0 4px 10px rgba(0,0,0,.3); animation: slideDown .4s ease, fadeOut .4s ease 2.4s forwards;
-  }
-  @keyframes slideDown { from{transform:translateY(-40px);opacity:0;} to{transform:translateY(0);opacity:1;} }
-  @keyframes fadeOut { to{opacity:0;} }
-  #reviveTimer { font-size:14px; color:#ccc; margin-top:6px; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+html,body { width:100%; height:100%; overflow:hidden; background:#1a1a2e; font-family:'Segoe UI',Arial,sans-serif; user-select: none; }
+#gameCanvas { display:block; margin:0 auto; touch-action:manipulation; }
+#ui { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+.btn { pointer-events:auto; }
+
+#topBar { position:absolute; top:16px; left:0; width:100%; display:flex; justify-content:space-between; padding:0 16px; z-index: 10; }
+#scoreDisplay {
+  color:#fff; font-size:48px; font-weight:900; text-shadow:0 3px 0 rgba(0,0,0,.25), 0 0 20px rgba(255,255,255,.25);
+  text-align:center; width:100%; position:absolute; top:26px; letter-spacing:1px; z-index: 5;
+}
+.scorePop { animation: scorePop .28s ease; }
+@keyframes scorePop { 0%{ transform:scale(1); } 40%{ transform:scale(1.35); } 100%{ transform:scale(1); } }
+
+.coinCount {
+  color:#ffe27a; font-size:16px; font-weight:800; display:flex; align-items:center; gap:6px;
+  background:rgba(15,15,30,.75); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding:8px 16px; border-radius:24px; border:1px solid rgba(255,255,255,.12);
+  box-shadow: 0 4px 14px rgba(0,0,0,.25);
+}
+.coinCount.pop { animation: coinPop .3s ease; }
+@keyframes coinPop { 0%{transform:scale(1);} 45%{transform:scale(1.22);} 100%{transform:scale(1);} }
+
+#menuScreen, #gameOverScreen, #shopScreen, #missionsScreen, #statsScreen, #achievementPopup {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  pointer-events:auto; z-index: 20;
+}
+#menuScreen, #gameOverScreen, #shopScreen, #missionsScreen, #statsScreen {
+  background: rgba(15, 15, 30, 0.85);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  animation: fadeInScale .38s cubic-bezier(.2,.9,.3,1.3);
+  color:#fff; text-align:center;
+}
+@keyframes fadeInScale { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
+
+.hidden { display:none !important; }
+
+.card {
+  background: rgba(30, 30, 50, 0.93);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:22px;
+  padding:26px 24px 20px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+  max-width:340px;
+  width: 88%;
+  max-height: 84vh;
+  overflow-y: auto;
+}
+
+h1 {
+  font-size:42px; color:#ffcc00; margin-bottom:4px; letter-spacing:1px;
+  text-shadow: 0 3px 0 #b33000, 0 8px 24px rgba(255,140,0,.4);
+  animation: titleBounce 2.6s ease-in-out infinite;
+}
+@keyframes titleBounce { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+
+.subtitle { font-size:12px; color:rgba(255,255,255,.55); margin-bottom:10px; }
+
+.menuTip {
+  font-size:11.5px; color:rgba(255,255,255,.75); background:rgba(0,0,0,.22);
+  border-radius:10px; padding:8px 12px; margin-bottom:12px; min-height:32px;
+  display:flex; align-items:center; justify-content:center; transition: opacity .3s ease;
+}
+.menuStatsTeaser { font-size:14px; font-weight:800; color:#ffe27a; margin-bottom:14px; }
+
+.bigBtn {
+  background: linear-gradient(180deg, #ff7a3d, #ff4500);
+  color:#fff; border:none; padding:16px 34px; font-size:19px;
+  border-radius:16px; margin:8px 0; font-weight:800; width:100%;
+  box-shadow: 0 5px 0 #b33000, 0 10px 24px rgba(255,69,0,.35);
+  cursor:pointer; letter-spacing:.3px;
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+.bigBtn:active { transform:translateY(4px); box-shadow:0 1px 0 #b33000, 0 4px 10px rgba(255,69,0,.3); }
+.bigBtn:disabled { opacity:.6; pointer-events: none; }
+.bigBtn.secondary { background: linear-gradient(180deg, #4facfe, #2196f3); box-shadow: 0 5px 0 #0d5aa0, 0 10px 24px rgba(33,150,243,.3); }
+.bigBtn.secondary:active { box-shadow:0 1px 0 #0d5aa0; transform:translateY(4px); }
+.bigBtn.ghost { background: linear-gradient(180deg, #6a6a7a, #45454f); box-shadow:0 5px 0 #2a2a32; }
+.bigBtn.ghost:active { transform:translateY(4px); box-shadow:0 1px 0 #2a2a32; }
+
+.smallBtn {
+  background: rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.16);
+  padding:9px 20px; font-size:13px; border-radius:12px; margin:6px; cursor:pointer;
+  font-weight:600; transition: background .15s ease, transform .08s ease;
+}
+.smallBtn:active { transform:scale(.95); background: rgba(255,255,255,.16); }
+
+.iconGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+.iconBtn {
+  background: rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13); border-radius:14px;
+  padding:10px 6px; display:flex; flex-direction:column; align-items:center; gap:3px;
+  font-size:11px; font-weight:700; color:#fff; cursor:pointer; transition: transform .08s ease, background .15s ease;
+}
+.iconBtn span.ic { font-size:21px; }
+.iconBtn:active { transform:scale(.93); background:rgba(255,255,255,.14); }
+
+.statRow { display:flex; justify-content:center; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+.statChip {
+  background:rgba(0,0,0,.25); border-radius:14px; padding:8px 14px; font-size:12px; font-weight:700;
+  display:flex; flex-direction:column; align-items:center; gap:2px; min-width:64px;
+}
+.statChip span.big { font-size:19px; color:#ffcc00; }
+.newRecordBadge {
+  display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#ffe27a,#ffb020);
+  color:#4a2e00; font-weight:800; font-size:13px; padding:6px 14px; border-radius:20px;
+  margin-bottom:14px; box-shadow:0 4px 14px rgba(255,176,32,.4); animation: badgeIn .4s ease;
+}
+@keyframes badgeIn { from{ transform:scale(0) rotate(-8deg); opacity:0; } to{ transform:scale(1) rotate(0); opacity:1; } }
+
+.skinRow { display:grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap:10px; margin:14px 0 6px; justify-content:center; }
+.skinItem {
+  background: rgba(255,255,255,.06); border:2px solid transparent; border-radius:14px; padding:10px 4px;
+  cursor:pointer; transition: transform .1s ease, border-color .15s ease, background .15s ease;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.skinItem:active { transform:scale(.93); }
+.skinItem.selected { border-color:#ffcc00; background:rgba(255,204,0,.12); }
+.skinItem.locked { opacity:.6; background: rgba(0, 0, 0, 0.2); }
+.skinItem .skinVisual { font-size:28px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); margin-bottom: 4px;}
+.skinItem .skinLabel { font-size:10px; font-weight:700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skinItem .skinCost { font-size:10px; color:#ffe27a; font-weight:800; margin-top:2px; }
+
+.missionItem {
+  background:rgba(255,255,255,.06); border-radius:14px; padding:12px 14px; margin-bottom:10px; text-align:left;
+}
+.missionItem .mLabel { font-size:13px; font-weight:700; margin-bottom:6px; display:flex; justify-content:space-between; }
+.missionBarBg { height:9px; background:rgba(255,255,255,.12); border-radius:6px; overflow:hidden; }
+.missionBarFill { height:100%; background:linear-gradient(90deg,#ffcc00,#ff8a00); border-radius:6px; transition: width .3s ease; }
+.missionDone { color:#7cff6a; font-size:11px; font-weight:800; margin-top:4px; }
+
+.lbRow { display:flex; justify-content:space-between; font-size:13px; padding:7px 4px; border-bottom:1px solid rgba(255,255,255,.08); }
+.lbRow:last-child { border-bottom:none; }
+
+#achievementPopup { background:transparent !important; align-items:flex-start; pointer-events:none; backdrop-filter:none !important; animation:none !important; }
+.achToast {
+  background: linear-gradient(135deg, #ffe27a, #ffb020); color:#3a2400; padding:12px 22px; border-radius:14px; font-weight:800;
+  margin-top:64px; box-shadow:0 8px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.5);
+  animation: slideDown .45s cubic-bezier(.2,.9,.3,1.3), fadeOut .4s ease 2.6s forwards;
+  font-size:14px; margin-left: auto; margin-right: auto;
+}
+@keyframes slideDown { from{transform:translateY(-50px) scale(.8);opacity:0;} to{transform:translateY(0) scale(1);opacity:1;} }
+@keyframes fadeOut { to{opacity:0; transform:translateY(-10px);} }
+
+#reviveTimer { font-size:13px; color:rgba(255,255,255,.5); margin-top:4px; }
 </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
 <div id="ui">
   <div id="topBar">
-    <div class="coinCount" id="coinCount">🪙 0</div>
+    <div class="coinCount btn" id="coinCountDisplay">🪙 0</div>
     <div class="coinCount" id="bestCount">🏆 0</div>
   </div>
   <div id="scoreDisplay" class="hidden">0</div>
 
   <div id="menuScreen">
-    <h1>FlapFoco</h1>
-    <button class="bigBtn" id="playBtn">▶ Jogar</button>
-    <button class="smallBtn" id="shopBtn">🎨 Skins</button>
+    <div class="card">
+      <h1>FlapFoco</h1>
+      <div class="menuTip" id="menuTip">💡 toque pra voar entre as barreiras</div>
+      <div class="menuStatsTeaser">🏆 <span id="menuBest">0</span> &nbsp;·&nbsp; 🪙 <span id="menuCoins">0</span></div>
+      <button class="bigBtn btn" id="playBtn">▶ Jogar</button>
+      <div class="iconGrid">
+        <button class="iconBtn btn" id="shopBtn"><span class="ic">🐦</span>Pássaros</button>
+        <button class="iconBtn btn" id="missionsBtn"><span class="ic">🎯</span>Missões</button>
+        <button class="iconBtn btn" id="statsBtn"><span class="ic">📊</span>Stats</button>
+        <button class="iconBtn btn" id="musicBtn"><span class="ic">🎵</span><span id="musicLabel">Música: Off</span></button>
+      </div>
+    </div>
   </div>
 
   <div id="gameOverScreen" class="hidden">
-    <h1>Fim de Jogo</h1>
-    <p id="finalScore" style="font-size:26px;margin-bottom:4px;"></p>
-    <p id="newRecord" class="hidden" style="color:#ffd700;font-weight:bold;">🏆 Novo recorde!</p>
-    <button class="bigBtn" id="reviveBtn">🎥 Reviver (assistir vídeo)</button>
-    <div id="reviveTimer" class="hidden"></div>
-    <button class="bigBtn" id="restartBtn" style="background:#2196f3;box-shadow:0 4px 0 #0d5aa0;">🔄 Jogar de novo</button>
-    <button class="smallBtn" id="menuBtn">Menu</button>
+    <div class="card">
+      <h1 style="font-size:30px;">Fim de Jogo</h1>
+      <p id="newRecord" class="hidden newRecordBadge">🏆 Novo recorde!</p>
+      <div class="statRow">
+        <div class="statChip">PONTOS<span class="big" id="finalScoreVal">0</span></div>
+        <div class="statChip">RECORDE<span class="big" id="finalBestVal">0</span></div>
+      </div>
+      <button class="bigBtn btn" id="reviveBtn">🎥 Assistir Vídeo p/ Reviver</button>
+      <div id="reviveTimer" class="hidden"></div>
+      <button class="bigBtn secondary btn" id="restartBtn">🔄 Jogar de novo</button>
+      <button class="bigBtn ghost btn" id="shareBtn">📤 Compartilhar</button>
+      <button class="smallBtn btn" id="menuBtn">Menu</button>
+    </div>
   </div>
 
   <div id="shopScreen" class="hidden">
-    <h1 style="font-size:28px;">Skins</h1>
-    <div class="skinRow" id="skinRow"></div>
-    <button class="smallBtn" id="closeShopBtn">Fechar</button>
+    <div class="card">
+      <h1 style="font-size:26px;">🐣 Pássaros</h1>
+      <div class="subtitle">colecione todos e voe com estilo!</div>
+      <div class="skinRow" id="skinRow"></div>
+      <button class="smallBtn btn" id="closeShopBtn">Fechar</button>
+    </div>
+  </div>
+
+  <div id="missionsScreen" class="hidden">
+    <div class="card">
+      <h1 style="font-size:24px;">Missões de hoje</h1>
+      <div class="subtitle" id="missionsSubtitle">renovam a cada dia</div>
+      <div id="missionsList"></div>
+      <button class="smallBtn btn" id="closeMissionsBtn">Fechar</button>
+    </div>
+  </div>
+
+  <div id="statsScreen" class="hidden">
+    <div class="card">
+      <h1 style="font-size:24px;">Estatísticas</h1>
+      <div class="statRow">
+        <div class="statChip">PARTIDAS<span class="big" id="statGames">0</span></div>
+        <div class="statChip">CANOS<span class="big" id="statPipes">0</span></div>
+        <div class="statChip">PERFEITOS<span class="big" id="statPerfects">0</span></div>
+      </div>
+      <div class="subtitle" style="margin-top:6px;">últimas 5 partidas</div>
+      <div id="leaderboardList"></div>
+      <button class="smallBtn btn" id="closeStatsBtn">Fechar</button>
+    </div>
   </div>
 
   <div id="achievementPopup"></div>
 </div>
 
 <script>
-window.onerror = function(msg, url, line) { document.body.innerHTML = '<div style="color:#fff;background:red;padding:20px;font-size:16px;">ERRO: ' + msg + ' (linha ' + line + ')</div>'; return true; };
-/* =========================================================
-   FLAPFOCO — engine + melhorias
-   - Dificuldade progressiva
-   - Skins desbloqueáveis (moedas ou ad assistido)
-   - Revive assistindo ad (rewarded)
-   - Sons e partículas ao pontuar
-   - Interstitial a cada 3 game overs
-   - Recorde salvo local + conquistas
-   - Hooks de AdMob e Analytics prontos pra plugin nativo
-========================================================= */
+window.onerror = function(msg, url, line) { 
+  alert('ERRO: ' + msg + ' (linha ' + line + ')');
+  return true; 
+};
 
 // ---------- CONFIG ----------
 const CONFIG = {
-  gravity: 0.28,
-  flapForce: -6.2,
-  pipeGapBase: 220,
-  pipeGapMin: 160,
-  pipeSpeedBase: 1.8,
-  pipeSpeedMax: 3.2,
-  pipeSpacing: 260,
-  difficultyRampScore: 25, // a cada N pontos, aumenta dificuldade
-  interstitialEveryNGameOvers: 3,
-  reviveInvincibleMs: 1000
+  gravity: 0.26,
+  flapForce: -5.8,
+  pipeGapBase: 210,
+  pipeGapMin: 155,
+  pipeSpeedBase: 2.0,
+  pipeSpeedMax: 3.8,
+  pipeSpacing: 270,
+  difficultyRampScore: 20,
+  reviveInvincibleMs: 1200,
+  groundHeight: 80,
+  shieldChance: 0.20
 };
 
 const SKINS = [
-  { id:'orange', name:'Foco', color:'#ff4500', cost:0 },
-  { id:'blue',   name:'Azul', color:'#2196f3', cost:50 },
-  { id:'green',  name:'Verde', color:'#4caf50', cost:80 },
-  { id:'purple', name:'Roxo', color:'#9c27b0', cost:120 },
-  { id:'gold',   name:'Ouro', color:'#ffd700', cost:200 }
+  { id:'orange', name:'Foquinho', emoji:'🐤', color:'#ff4500', cost:0, effect:'none' },
+  { id:'blue', name:'Azulzinho', emoji:'🐧', color:'#2196f3', cost:30, effect:'none' },
+  { id:'green', name:'Verdinho', emoji:'🦜', color:'#4caf50', cost:60, effect:'none' },
+  { id:'purple', name:'Roxinho', emoji:'🦉', color:'#9c27b0', cost:100, effect:'none' },
+  { id:'gold', name:'Douradão', emoji:'🐥', color:'#ffd700', cost:200, effect:'gold' },
+  { id:'fire', name:'Fogareiro', emoji:'🔥', color:'#ff5722', cost:150, effect:'fire' },
+  { id:'ice', name:'Gelinho', emoji:'❄️', color:'#4fc3f7', cost:150, effect:'ice' },
+  { id:'rainbow', name:'Arco-Íris', emoji:'🌈', color:'#ff007f', cost:300, effect:'rainbow' }
 ];
 
 const ACHIEVEMENTS = [
-  { id:'score10', label:'🥉 10 pontos!', check: s => s.best >= 10 },
-  { id:'score50', label:'🥈 50 pontos!', check: s => s.best >= 50 },
-  { id:'score100', label:'🥇 100 pontos!', check: s => s.best >= 100 }
+  { id:'score10', label:'🥉 10 pontos alcançados!', check: s => s.best >= 10 },
+  { id:'score30', label:'🥈 30 pontos alcançados!', check: s => s.best >= 30 },
+  { id:'score70', label:'🥇 70 pontos incríveis!', check: s => s.best >= 70 }
+];
+
+const MISSION_POOL = [
+  { id:'pipes10', label:'Passe por 10 canos', target:10, key:'pipesToday', reward:15 },
+  { id:'pipes25', label:'Passe por 25 canos', target:25, key:'pipesToday', reward:30 },
+  { id:'perfect1', label:'Consiga 1 PERFEITO', target:1, key:'perfectsToday', reward:15 },
+  { id:'perfect3', label:'Consiga 3 PERFEITOs', target:3, key:'perfectsToday', reward:35 },
+  { id:'games3', label:'Jogue 3 partidas', target:3, key:'gamesToday', reward:15 }
+];
+
+const MENU_TIPS = [
+  '💡 Toque na tela para voar e manter o foco!',
+  '⭐ Passe bem no centro do vão para ganhar bônus PERFEITO!',
+  '🛡️ Colete o orbe azul brilhante para ganhar um Escudo protetor.',
+  '🌙 A pontuação altera o ciclo de cores entre dia e noite de forma suave!',
+  '🎨 Consiga moedas para desbloquear visuais exclusivos na loja!',
+  '🎯 Fique atento às missões diárias para turbinar seu progresso.'
 ];
 
 // ---------- STORAGE ----------
@@ -127,352 +291,863 @@ const store = {
   set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e){} }
 };
 
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+}
+
 let state = {
   best: store.get('flapfoco_best', 0),
   coins: store.get('flapfoco_coins', 0),
   ownedSkins: store.get('flapfoco_owned_skins', ['orange']),
   currentSkin: store.get('flapfoco_current_skin', 'orange'),
   unlockedAch: store.get('flapfoco_achievements', []),
-  gameOverCount: store.get('flapfoco_go_count', 0)
+  totalGames: store.get('flapfoco_stat_games', 0),
+  totalPipes: store.get('flapfoco_stat_pipes', 0),
+  totalPerfects: store.get('flapfoco_stat_perfects', 0),
+  leaderboard: store.get('flapfoco_leaderboard', []),
+  musicOn: store.get('flapfoco_music_on', false),
+  missions: store.get('flapfoco_missions', null)
 };
 
-// ---------- ANALYTICS / ADS HOOKS ----------
-const Ads = {
-  showInterstitial() {
-    console.log('[ADS] showInterstitial()');
-  },
-  showRewarded(onReward) {
-    console.log('[ADS] showRewarded()');
-    setTimeout(onReward, 600);
-  },
-  showBanner() {
-    console.log('[ADS] showBanner()');
-  }
-};
-const Analytics = {
-  log(event, params) {
-    console.log('[ANALYTICS]', event, params || {});
-  }
-};
-
-// ---------- CANVAS SETUP ----------
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+function saveState() {
+  store.set('flapfoco_best', state.best);
+  store.set('flapfoco_coins', state.coins);
+  store.set('flapfoco_owned_skins', state.ownedSkins);
+  store.set('flapfoco_current_skin', state.currentSkin);
+  store.set('flapfoco_achievements', state.unlockedAch);
+  store.set('flapfoco_stat_games', state.totalGames);
+  store.set('flapfoco_stat_pipes', state.totalPipes);
+  store.set('flapfoco_stat_perfects', state.totalPerfects);
+  store.set('flapfoco_leaderboard', state.leaderboard);
+  store.set('flapfoco_music_on', state.musicOn);
 }
-window.addEventListener('resize', resize);
-resize();
 
-// ---------- AUDIO ----------
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let actx = null;
-function ensureAudio() { if (!actx) actx = new AudioCtx(); }
-function beep(freq, duration, type='sine', vol=0.15) {
-  if (!actx) return;
-  const o = actx.createOscillator();
-  const g = actx.createGain();
-  o.type = type; o.frequency.value = freq;
-  g.gain.value = vol;
-  o.connect(g); g.connect(actx.destination);
-  o.start();
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + duration);
-  o.stop(actx.currentTime + duration);
-}
-const Sound = {
-  flap: () => beep(400, 0.08, 'square', 0.08),
-  score: () => beep(880, 0.12, 'sine', 0.15),
-  hit: () => beep(120, 0.3, 'sawtooth', 0.18),
-  achievement: () => { beep(660,0.1); setTimeout(()=>beep(880,0.15),100); }
-};
-
-// ---------- PARTICLES ----------
-let particles = [];
-function spawnParticles(x, y, color) {
-  for (let i=0;i<10;i++) {
-    particles.push({
-      x, y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4-1,
-      life:30, color
-    });
+function ensureMissions() {
+  const today = todayStr();
+  if (!state.missions || state.missions.date !== today) {
+    const shuffled = [...MISSION_POOL].sort(() => Math.random()-0.5);
+    state.missions = {
+      date: today,
+      active: shuffled.slice(0, 3).map(m => ({ id:m.id, progress:0, claimed:false })),
+      counters: { pipesToday:0, perfectsToday:0, gamesToday:0 }
+    };
+    store.set('flapfoco_missions', state.missions);
   }
 }
-function updateParticles() {
-  particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life--; });
-  particles = particles.filter(p => p.life > 0);
-}
-function drawParticles() {
-  particles.forEach(p => {
-    ctx.globalAlpha = Math.max(p.life/30, 0);
-    ctx.fillStyle = p.color;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-}
+ensureMissions();
 
-// ---------- BIRD ----------
-let bird = { x:0, y:0, vy:0, r:16, rot:0 }, pipes = [], score = 0, difficultyLevel = 0, invincibleUntil = 0, gameRunning = false, gamePaused = false;
-
-function currentSkinColor() {
-  const s = SKINS.find(s => s.id === state.currentSkin) || SKINS[0];
-  return s.color;
-}
-
-function resetGame() {
-  bird = { x: canvas.width*0.25, y: canvas.height/2, vy:0, r:16, rot:0 };
-  pipes = [];
-  score = 0;
-  difficultyLevel = 0;
-  invincibleUntil = 0;
-  particles = [];
-  spawnPipe();
-}
-
-function spawnPipe() {
-  const gap = Math.max(CONFIG.pipeGapBase - difficultyLevel*6, CONFIG.pipeGapMin);
-  const margin = 60;
-  const gapY = margin + Math.random()*(canvas.height - margin*2 - gap);
-  pipes.push({ x: canvas.width + 40, gapY, gap, passed:false, w:52 });
-}
-
-function pipeSpeed() {
-  return Math.min(CONFIG.pipeSpeedBase + difficultyLevel*0.18, CONFIG.pipeSpeedMax);
-}
-
-function flap() {
-  ensureAudio();
-  if (!gameRunning) return;
-  bird.vy = CONFIG.flapForce;
-  Sound.flap();
-}
-
-function updateGame() {
-  if (!gameRunning || gamePaused) return;
-
-  bird.vy += CONFIG.gravity;
-  bird.y += bird.vy;
-  bird.rot = Math.max(-30, Math.min(70, bird.vy * 4));
-
-  const speed = pipeSpeed();
-  pipes.forEach(p => p.x -= speed);
-  if (pipes.length && pipes[pipes.length-1].x < canvas.width - CONFIG.pipeSpacing) spawnPipe();
-  pipes = pipes.filter(p => p.x > -80);
-
-  const invincible = Date.now() < invincibleUntil;
-
-  if (!invincible && (bird.y - bird.r < 0 || bird.y + bird.r > canvas.height)) {
-    return endGame();
-  }
-
-  pipes.forEach(p => {
-    if (!p.passed && p.x + p.w < bird.x - bird.r) {
-      p.passed = true;
-      score++;
-      Sound.score();
-      spawnParticles(bird.x, bird.y, currentSkinColor());
-      state.coins += 1;
-      store.set('flapfoco_coins', state.coins);
-      if (score % CONFIG.difficultyRampScore === 0) difficultyLevel++;
-    }
-    const inX = bird.x + bird.r > p.x && bird.x - bird.r < p.x + p.w;
-    const inGapTop = bird.y - bird.r < p.gapY;
-    const inGapBottom = bird.y + bird.r > p.gapY + p.gap;
-    if (!invincible && inX && (inGapTop || inGapBottom)) {
-      return endGame();
+function bumpMissionCounter(key, amount) {
+  ensureMissions();
+  state.missions.counters[key] = (state.missions.counters[key]||0) + amount;
+  state.missions.active.forEach(m => {
+    const def = MISSION_POOL.find(d => d.id === m.id);
+    if (!def || m.claimed) return;
+    m.progress = state.missions.counters[def.key] || 0;
+    if (m.progress >= def.target && !m.claimed) {
+      m.claimed = true;
+      state.coins += def.reward;
+      showAchievementToast('🎯 Missão: +' + def.reward + ' Moedas!');
+      updateTopBar();
     }
   });
-
-  updateParticles();
-  document.getElementById('scoreDisplay').textContent = score;
-  document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
+  store.set('flapfoco_missions', state.missions);
+  saveState();
 }
 
-function endGame() {
-  gameRunning = false;
-  Sound.hit();
-  const isNewRecord = score > state.best;
-  if (isNewRecord) { state.best = score; store.set('flapfoco_best', state.best); }
-  document.getElementById('bestCount').textContent = '🏆 ' + state.best;
+// ---------- HAPTICS / TOAST ----------
+function vibrate(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e) {}
+}
 
-  checkAchievements();
-
-  state.gameOverCount++;
-  store.set('flapfoco_go_count', state.gameOverCount);
-
-  Analytics.log('game_over', { score, best: state.best });
-
-  document.getElementById('scoreDisplay').classList.add('hidden');
-  document.getElementById('finalScore').textContent = 'Pontuação: ' + score;
-  document.getElementById('newRecord').classList.toggle('hidden', !isNewRecord);
-  document.getElementById('gameOverScreen').classList.remove('hidden');
-
-  const reviveBtn = document.getElementById('reviveBtn');
-  reviveBtn.classList.remove('hidden');
-  document.getElementById('reviveTimer').classList.add('hidden');
-
-  if (state.gameOverCount % CONFIG.interstitialEveryNGameOvers === 0) {
-    Ads.showInterstitial();
-  }
+function showAchievementToast(msg) {
+  const container = document.getElementById('achievementPopup');
+  const div = document.createElement('div');
+  div.className = 'achToast';
+  div.innerText = msg;
+  container.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
 }
 
 function checkAchievements() {
-  ACHIEVEMENTS.forEach(a => {
-    if (!state.unlockedAch.includes(a.id) && a.check(state)) {
-      state.unlockedAch.push(a.id);
-      store.set('flapfoco_achievements', state.unlockedAch);
-      showAchievementToast(a.label);
+  ACHIEVEMENTS.forEach(ach => {
+    if (!state.unlockedAch.includes(ach.id) && ach.check(state)) {
+      state.unlockedAch.push(ach.id);
+      saveState();
+      beep(587.33, 0.1, 'sine', 0.15);
+      setTimeout(() => beep(880, 0.2, 'sine', 0.15), 100);
+      showAchievementToast('🏆 Conquista: ' + ach.label);
     }
   });
 }
 
-function showAchievementToast(label) {
-  Sound.achievement();
-  const el = document.createElement('div');
-  el.className = 'achToast';
-  el.textContent = label;
-  document.getElementById('achievementPopup').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+// ---------- AUDIO SYNTHESIS ----------
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+let musicInterval = null;
+let musicStep = 0;
+
+function ensureAudio() { 
+  if (!actx) {
+    try { actx = new AudioCtx(); } catch(e) {}
+  }
+  if (actx && actx.state === 'suspended') {
+    actx.resume();
+  }
 }
 
-// ---------- DRAW ----------
-function drawBird() {
+function beep(freq, duration, type='sine', vol=0.1) {
+  ensureAudio();
+  if (!actx || actx.state === 'suspended') return;
+  try {
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type; 
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + duration);
+    o.connect(g); 
+    g.connect(actx.destination);
+    o.start();
+    o.stop(actx.currentTime + duration);
+  } catch (e) {}
+}
+
+function startProceduralMusic() {
+  if (musicInterval) clearInterval(musicInterval);
+  if (!state.musicOn) return;
+  
+  // Ritmo minimalista continuo
+  musicInterval = setInterval(() => {
+    ensureAudio();
+    if (!state.musicOn || !actx) return;
+    
+    // Baixo rítmico progressivo
+    if (musicStep % 4 === 0) {
+      beep(110, 0.15, 'triangle', 0.08); 
+    } else if (musicStep % 4 === 2) {
+      beep(130.81, 0.1, 'triangle', 0.06);
+    }
+    
+    // Detalhe melódico no fundo durante o gameplay
+    if (gameRunning && musicStep % 8 === 4) {
+      beep(220, 0.08, 'sine', 0.03);
+    }
+    musicStep++;
+  }, 250);
+}
+
+function stopProceduralMusic() {
+  if (musicInterval) {
+    clearInterval(musicInterval);
+    musicInterval = null;
+  }
+}
+
+const Sound = {
+  flap: () => {
+    const skin = SKINS.find(s => s.id === state.currentSkin) || SKINS[0];
+    let freq = 360;
+    if (skin.id === 'blue') freq = 440;
+    if (skin.id === 'purple') freq = 520;
+    if (skin.id === 'fire') freq = 260;
+    if (skin.id === 'ice') freq = 600;
+    beep(freq, 0.09, 'square', 0.05);
+  },
+  score: () => beep(880, 0.1, 'sine', 0.12),
+  perfect: () => {
+    beep(880, 0.08, 'sine', 0.15);
+    setTimeout(() => beep(1318.51, 0.15, 'sine', 0.15), 60);
+  },
+  hit: () => {
+    beep(150, 0.25, 'sawtooth', 0.2);
+    setTimeout(() => beep(90, 0.3, 'sawtooth', 0.2), 80);
+  },
+  shield: () => {
+    beep(440, 0.06, 'sine', 0.12);
+    setTimeout(() => beep(880, 0.12, 'sine', 0.12), 60);
+  }
+};
+
+// ---------- ENGINE VARIABLES ----------
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let gameRunning = false;
+let gameOver = false;
+let score = 0;
+let hasRevived = false;
+let invincibilityTimer = 0;
+let currentBackgroundHue = 240; // Inicial azul escuro
+
+// Entidades
+let bird = { x: 0, y: 0, radius: 17, velocity: 0, hasShield: false, angle: 0 };
+let pipes = [];
+let items = [];
+let particles = [];
+let stars = [];
+let hills = [];
+
+// ---------- INITIALIZATION / LAYOUT ----------
+function resize() {
+  canvas.width = Math.min(window.innerWidth, 480);
+  canvas.height = window.innerHeight;
+  
+  // Gerar estrelas estáveis
+  stars = [];
+  for (let i = 0; i < 35; i++) {
+    stars.push({ x: Math.random() * canvas.width, y: Math.random() * (canvas.height * 0.6), r: Math.random() * 1.5 + 0.5 });
+  }
+  
+  // Montanhas de fundo
+  hills = [
+    { camel: 0.15, height: canvas.height * 0.22, colorOffset: -15 },
+    { camel: 0.3, height: canvas.height * 0.14, colorOffset: 0 }
+  ];
+  
+  if (!gameRunning && !gameOver) {
+    resetGameStructure();
+  }
+}
+
+function resetGameStructure() {
+  bird.x = canvas.width * 0.25;
+  bird.y = canvas.height * 0.45;
+  bird.velocity = 0;
+  bird.hasShield = false;
+  bird.angle = 0;
+  
+  pipes = [];
+  items = [];
+  particles = [];
+  score = 0;
+  hasRevived = false;
+  invincibilityTimer = 0;
+  currentBackgroundHue = 240;
+  document.getElementById('scoreDisplay').innerText = "0";
+}
+
+// ---------- GRAPHICS HELPERS ----------
+function lerpColor(hStart, hEnd, percent) {
+  return hStart + (hEnd - hStart) * percent;
+}
+
+function drawBird(ctx, x, y, radius, angle, skin) {
   ctx.save();
-  ctx.translate(bird.x, bird.y);
-  ctx.rotate(bird.rot * Math.PI/180);
-  const invincible = Date.now() < invincibleUntil;
-  ctx.globalAlpha = invincible ? (Math.sin(Date.now()/50)*0.3+0.7) : 1;
-  ctx.fillStyle = currentSkinColor();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  
+  // Efeito rastro de partículas especiais em voo
+  if (gameRunning && Math.random() < 0.25) {
+    particles.push({
+      x: x - 10,
+      y: y + (Math.random()*10 - 5),
+      vx: -1.5, vy: (Math.random() - 0.5),
+      life: 1, maxLife: 20,
+      color: skin.color
+    });
+  }
+  
+  // Desenhar corpo base
   ctx.beginPath();
-  ctx.arc(0,0,bird.r,0,Math.PI*2);
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  
+  if (skin.effect === 'rainbow') {
+    let g = ctx.createRadialGradient(-4, -4, 2, 0, 0, radius);
+    let shift = (Date.now() / 400) % 360;
+    g.addColorStop(0, `hsl(${shift}, 90%, 65%)`);
+    g.addColorStop(1, `hsl(${(shift + 60)%360}, 90%, 40%)`);
+    ctx.fillStyle = g;
+  } else {
+    let g = ctx.createRadialGradient(-4, -4, 2, 0, 0, radius);
+    g.addColorStop(0, skin.color);
+    g.addColorStop(1, '#000');
+    ctx.fillStyle = skin.color;
+  }
   ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(6,-4,5,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#000';
-  ctx.beginPath(); ctx.arc(8,-4,2.5,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#ffa500';
-  ctx.beginPath();
-  ctx.moveTo(bird.r-2,-2); ctx.lineTo(bird.r+10,2); ctx.lineTo(bird.r-2,6);
-  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.stroke();
+  
+  // Desenhar emoji interno centralizado
+  ctx.font = `${radius * 1.3}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.rotate(-angle * 0.4); // Estabilizar levemente o emoji
+  ctx.fillText(skin.emoji, 0, 1);
   ctx.restore();
-  ctx.globalAlpha = 1;
+  
+  // Bolha de Escudo se ativo
+  if (bird.hasShield) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius + 7, 0, Math.PI*2);
+    let pulse = 0.5 + Math.sin(Date.now() / 120) * 0.15;
+    ctx.strokeStyle = `rgba(66, 165, 245, ${pulse})`;
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#42a5f5';
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
-function drawPipes() {
-  ctx.fillStyle = '#3ba55c';
-  ctx.strokeStyle = '#2d7d46';
-  ctx.lineWidth = 3;
-  pipes.forEach(p => {
-    ctx.fillRect(p.x, 0, p.w, p.gapY);
-    ctx.strokeRect(p.x, 0, p.w, p.gapY);
-    ctx.fillRect(p.x, p.gapY + p.gap, p.w, canvas.height - (p.gapY + p.gap));
-    ctx.strokeRect(p.x, p.gapY + p.gap, p.w, canvas.height - (p.gapY + p.gap));
+// ---------- ENGINE CORE ----------
+function spawnPipe(xPos) {
+  let scoreFactor = Math.min(score / CONFIG.difficultyRampScore, 1.0);
+  let currentGap = CONFIG.pipeGapBase - (CONFIG.pipeGapBase - CONFIG.pipeGapMin) * scoreFactor;
+  
+  let margin = 70;
+  let availableHeight = canvas.height - CONFIG.groundHeight - currentGap - margin * 2;
+  let topHeight = margin + Math.random() * availableHeight;
+  
+  pipes.push({
+    x: xPos,
+    topHeight: topHeight,
+    bottomTop: topHeight + currentGap,
+    gapSize: currentGap,
+    width: 68,
+    passed: false
   });
+  
+  // Chance de instanciar Orbe de Escudo ou Moedas no centro
+  if (Math.random() < CONFIG.shieldChance) {
+    items.push({
+      x: xPos + 34,
+      y: topHeight + currentGap / 2,
+      type: 'shield',
+      radius: 10,
+      collected: false
+    });
+  } else if (Math.random() < 0.65) {
+    items.push({
+      x: xPos + 34,
+      y: topHeight + currentGap / 2,
+      type: 'coin',
+      radius: 9,
+      collected: false
+    });
+  }
+}
+
+function updateGame() {
+  if (invincibilityTimer > 0) invincibilityTimer -= 16.66; // Aprox 1 frame em ms
+  
+  // Atualizar dinamicamente a matiz do céu baseada nos pontos
+  let targetHue = 240 - (score * 4);
+  if (targetHue < 120) targetHue = 120; // Limita variação cromática harmoniosa
+  currentBackgroundHue = currentBackgroundHue + (targetHue - currentBackgroundHue) * 0.05;
+  
+  // Movimento Física Pássaro
+  bird.velocity += CONFIG.gravity;
+  bird.y += bird.velocity;
+  
+  // Ângulo visual baseado no vetor velocidade
+  bird.angle = Math.min(Math.PI / 4, Math.max(-Math.PI / 7, bird.velocity * 0.07));
+  
+  // Teto/Chão limites básicos
+  if (bird.y - bird.radius < 0) {
+    bird.y = bird.radius;
+    bird.velocity = 0;
+  }
+  if (bird.y + bird.radius >= canvas.height - CONFIG.groundHeight) {
+    triggerGameOver();
+  }
+  
+  // Velocidade dos canos
+  let speedFactor = Math.min(score / CONFIG.difficultyRampScore, 1.0);
+  let currentSpeed = CONFIG.pipeSpeedBase + (CONFIG.pipeSpeedMax - CONFIG.pipeSpeedBase) * speedFactor;
+  
+  // Atualizar canos
+  for (let i = pipes.length - 1; i >= 0; i--) {
+    let p = pipes[i];
+    p.x -= currentSpeed;
+    
+    // Processamento de colisão física
+    if (invincibilityTimer <= 0) {
+      let withinX = (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + p.width);
+      let hitTop = (bird.y - bird.radius < p.topHeight);
+      let hitBottom = (bird.y + bird.radius > p.bottomTop);
+      
+      if (withinX && (hitTop || hitBottom)) {
+        if (bird.hasShield) {
+          bird.hasShield = false;
+          invincibilityTimer = CONFIG.reviveInvincibleMs;
+          Sound.hit();
+          // Destruir cano visualmente removendo colisores próximos
+          p.x = -200; 
+        } else {
+          triggerGameOver();
+        }
+      }
+    }
+    
+    // Cruzamento com sucesso
+    if (!p.passed && p.x + p.width / 2 < bird.x) {
+      p.passed = true;
+      score++;
+      document.getElementById('scoreDisplay').innerText = score;
+      document.getElementById('scoreDisplay').classList.add('scorePop');
+      setTimeout(() => document.getElementById('scoreDisplay').classList.remove('scorePop'), 280);
+      
+      // Validação de passagem perfeita (centro exato do vão)
+      let centerVao = p.topHeight + p.gapSize / 2;
+      if (Math.abs(bird.y - centerVao) < p.gapSize * 0.09) {
+        // Ganha Moeda Bônus Perfeito
+        state.coins += 2;
+        bumpMissionCounter('perfectsToday', 1);
+        state.totalPerfects++;
+        Sound.perfect();
+        createPerfectBurst(bird.x, bird.y);
+      } else {
+        Sound.score();
+      }
+      
+      bumpMissionCounter('pipesToday', 1);
+      state.totalPipes++;
+      checkAchievements();
+      updateTopBar();
+    }
+    
+    if (p.x + p.width < 0) {
+      pipes.splice(i, 1);
+    }
+  }
+  
+  // Atualizar Itens Coletáveis
+  for (let i = items.length - 1; i >= 0; i--) {
+    let item = items[i];
+    item.x -= currentSpeed;
+    
+    let dist = Math.hypot(bird.x - item.x, bird.y - item.y);
+    if (!item.collected && dist < bird.radius + item.radius) {
+      item.collected = true;
+      if (item.type === 'shield') {
+        bird.hasShield = true;
+        Sound.shield();
+      } else if (item.type === 'coin') {
+        state.coins += 1;
+        Sound.score();
+        updateTopBar();
+        // Feedback flutuante na UI de moedas
+        document.getElementById('coinCountDisplay').classList.add('pop');
+        setTimeout(() => document.getElementById('coinCountDisplay').classList.remove('pop'), 300);
+      }
+      saveState();
+    }
+    
+    if (item.x + item.radius < 0 || item.collected) {
+      items.splice(i, 1);
+    }
+  }
+  
+  // Garantir fluxo infinito de canos espaçados
+  if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - CONFIG.pipeSpacing) {
+    spawnPipe(canvas.width + 50);
+  }
+  
+  // Partículas internas simples
+  for (let i = particles.length - 1; i >= 0; i--) {
+    let pt = particles[i];
+    pt.x += pt.vx;
+    pt.y += pt.vy;
+    pt.life++;
+    if (pt.life > pt.maxLife) particles.splice(i, 1);
+  }
+}
+
+function createPerfectBurst(x, y) {
+  for(let i=0; i<12; i++) {
+    let a = Math.random() * Math.PI * 2;
+    let s = Math.random() * 3 + 2;
+    particles.push({
+      x: x, y: y,
+      vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+      life: 0, maxLife: 25,
+      color: '#ffe27a'
+    });
+  }
+}
+
+// ---------- RENDER PRINCIPAL ----------
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // 1. Fundo Gradiente Atmosférico
+  let skyG = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  skyG.addColorStop(0, `hsl(${currentBackgroundHue}, 50%, 12%)`);
+  skyG.addColorStop(0.6, `hsl(${currentBackgroundHue - 20}, 45%, 22%)`);
+  skyG.addColorStop(1, `hsl(${currentBackgroundHue - 40}, 40%, 32%)`);
+  ctx.fillStyle = skyG;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Estrelas cintilantes no topo
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  stars.forEach(s => {
+    let alpha = 0.3 + Math.sin((Date.now() / 300) + s.x) * 0.4;
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  // 2. Montanhas/Colinas estáticas
+  hills.forEach(h => {
+    ctx.fillStyle = `hsl(${currentBackgroundHue - 30}, 30%, ${20 + h.colorOffset}%)`;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height);
+    ctx.lineTo(0, canvas.height - CONFIG.groundHeight - h.height);
+    ctx.quadraticCurveTo(canvas.width * 0.5, canvas.height - CONFIG.groundHeight - h.height - 40, canvas.width, canvas.height - CONFIG.groundHeight - h.height);
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.closePath();
+    ctx.fill();
+  });
+  
+  // 3. Renderizar Canos Obstáculos
+  pipes.forEach(p => {
+    let pipeG = ctx.createLinearGradient(p.x, 0, p.x + p.width, 0);
+    pipeG.addColorStop(0, '#2e7d32');
+    pipeG.addColorStop(0.3, '#4caf50');
+    pipeG.addColorStop(0.7, '#81c784');
+    pipeG.addColorStop(1, '#1b5e20');
+    ctx.fillStyle = pipeG;
+    
+    // Cano Superior
+    ctx.fillRect(p.x, 0, p.width, p.topHeight);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(p.x, p.topHeight - 16, p.width, 16);
+    
+    // Cano Inferior
+    ctx.fillStyle = pipeG;
+    ctx.fillRect(p.x, p.bottomTop, p.width, canvas.height - CONFIG.groundHeight - p.bottomTop);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(p.x, p.bottomTop, p.width, 16);
+  });
+  
+  // 4. Desenhar Coletáveis
+  items.forEach(item => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+    if (item.type === 'shield') {
+      ctx.fillStyle = '#42a5f5';
+      ctx.shadowColor = '#42a5f5';
+      ctx.shadowBlur = 8;
+    } else {
+      ctx.fillStyle = '#ffca28';
+      ctx.shadowColor = '#ffca28';
+      ctx.shadowBlur = 8;
+    }
+    ctx.fill();
+    ctx.restore();
+  });
+  
+  // 5. Partículas ativas
+  particles.forEach(pt => {
+    ctx.fillStyle = pt.color;
+    ctx.globalAlpha = 1 - (pt.life / pt.maxLife);
+    ctx.fillRect(pt.x, pt.y, 4, 4);
+    ctx.globalAlpha = 1.0;
+  });
+  
+  // 6. Jogador Pássaro
+  let activeSkin = SKINS.find(s => s.id === state.currentSkin) || SKINS[0];
+  let isInvincibleBlink = (invincibilityTimer > 0 && Math.floor(invincibilityTimer / 100) % 2 === 0);
+  if (!isInvincibleBlink) {
+    drawBird(ctx, bird.x, bird.y, bird.radius, bird.angle, activeSkin);
+  }
+  
+  // 7. Piso térreo
+  let groundG = ctx.createLinearGradient(0, canvas.height - CONFIG.groundHeight, 0, canvas.height);
+  groundG.addColorStop(0, '#e57373');
+  groundG.addColorStop(1, '#af4448');
+  ctx.fillStyle = groundG;
+  ctx.fillRect(0, canvas.height - CONFIG.groundHeight, canvas.width, CONFIG.groundHeight);
+  
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(0, canvas.height - CONFIG.groundHeight, canvas.width, 6);
 }
 
 function loop() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  updateGame();
-  drawPipes();
-  drawBird();
-  drawParticles();
+  if (gameRunning && !gameOver) {
+    updateGame();
+  }
+  draw();
   requestAnimationFrame(loop);
 }
 
-// ---------- UI WIRING ----------
-document.getElementById('bestCount').textContent = '🏆 ' + state.best;
-document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
-
-function startGame() {
-  document.getElementById('menuScreen').classList.add('hidden');
-  document.getElementById('gameOverScreen').classList.add('hidden');
-  document.getElementById('scoreDisplay').classList.remove('hidden');
-  resetGame();
-  gameRunning = true;
-  Analytics.log('game_start');
-}
-
-document.getElementById('playBtn').addEventListener('click', () => { ensureAudio(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', startGame);
-document.getElementById('menuBtn').addEventListener('click', () => {
-  document.getElementById('gameOverScreen').classList.add('hidden');
-  document.getElementById('menuScreen').classList.remove('hidden');
-});
-
-document.getElementById('reviveBtn').addEventListener('click', function() {
-  const btn = this;
-  btn.disabled = true;
-  btn.textContent = '⏳ Carregando vídeo...';
-  Ads.showRewarded(() => {
-    document.getElementById('gameOverScreen').classList.add('hidden');
-    document.getElementById('scoreDisplay').classList.remove('hidden');
-    bird.y = canvas.height/2;
-    bird.vy = 0;
-    invincibleUntil = Date.now() + CONFIG.reviveInvincibleMs;
+// ---------- ACTIONS / NAVIGATION ----------
+function startFlap() {
+  ensureAudio();
+  if (gameOver) return;
+  if (!gameRunning) {
+    // Primeiros passos: Esconder menus
     gameRunning = true;
-    btn.disabled = false;
-    btn.textContent = '🎥 Reviver (assistir vídeo)';
-    Analytics.log('revive_used');
-  });
-});
+    document.getElementById('menuScreen').classList.add('hidden');
+    document.getElementById('scoreDisplay').classList.remove('hidden');
+    startProceduralMusic();
+  }
+  bird.velocity = CONFIG.flapForce;
+  Sound.flap();
+}
 
-canvas.addEventListener('pointerdown', flap);
-window.addEventListener('keydown', e => { if (e.code === 'Space') flap(); });
+function triggerGameOver() {
+  if (gameOver) return;
+  gameOver = true;
+  gameRunning = false;
+  vibrate(200);
+  Sound.hit();
+  stopProceduralMusic();
+  
+  state.totalGames++;
+  bumpMissionCounter('gamesToday', 1);
+  
+  let isNewRecord = false;
+  if (score > state.best) {
+    state.best = score;
+    isNewRecord = true;
+  }
+  
+  // Atualizar histórico de leaderboard local (últimas 5)
+  state.leaderboard.unshift({ score: score, date: new Date().toLocaleDateString('pt-BR') });
+  if (state.leaderboard.length > 5) state.leaderboard.pop();
+  saveState();
+  
+  // Expor dados na Tela de Game Over
+  document.getElementById('finalScoreVal').innerText = score;
+  document.getElementById('finalBestVal').innerText = state.best;
+  
+  if (isNewRecord) {
+    document.getElementById('newRecord').classList.remove('hidden');
+  } else {
+    document.getElementById('newRecord').classList.add('hidden');
+  }
+  
+  // Gerenciar botão de reviver por anúncio simulado
+  let reviveBtn = document.getElementById('reviveBtn');
+  if (hasRevived) {
+    reviveBtn.disabled = true;
+    reviveBtn.innerText = "❌ Já reviveu nesta partida";
+  } else {
+    reviveBtn.disabled = false;
+    reviveBtn.innerText = "🎥 Assistir Vídeo p/ Reviver";
+  }
+  
+  document.getElementById('scoreDisplay').classList.add('hidden');
+  document.getElementById('gameOverScreen').classList.remove('hidden');
+}
 
-// ---------- SHOP ----------
-function renderShop() {
-  const row = document.getElementById('skinRow');
-  row.innerHTML = '';
+function executeReviveAction() {
+  document.getElementById('reviveBtn').disabled = true;
+  let countdown = 3;
+  let timerDiv = document.getElementById('reviveTimer');
+  timerDiv.classList.remove('hidden');
+  timerDiv.innerText = `Preparando em ${countdown}...`;
+  
+  let interval = setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+      clearInterval(interval);
+      timerDiv.classList.add('hidden');
+      
+      // Reviver pássaro reposicionando no centro seguro
+      gameOver = false;
+      gameRunning = true;
+      hasRevived = true;
+      bird.y = canvas.height * 0.45;
+      bird.velocity = -3;
+      bird.hasShield = true; // Ganha um escudo automático de proteção imediata
+      invincibilityTimer = CONFIG.reviveInvincibleMs * 1.5;
+      
+      document.getElementById('gameOverScreen').classList.add('hidden');
+      document.getElementById('scoreDisplay').classList.remove('hidden');
+      startProceduralMusic();
+    } else {
+      timerDiv.innerText = `Preparando em ${countdown}...`;
+    }
+  }, 700);
+}
+
+function updateTopBar() {
+  document.getElementById('coinCountDisplay').innerText = "🪙 " + state.coins;
+  document.getElementById('bestCount').innerText = "🏆 " + state.best;
+  document.getElementById('menuBest').innerText = state.best;
+  document.getElementById('menuCoins').innerText = state.coins;
+}
+
+// ---------- LISTAS / TELA DE SHOP E MISSÕES ----------
+function renderShopItems() {
+  const container = document.getElementById('skinRow');
+  container.innerHTML = "";
+  
   SKINS.forEach(skin => {
-    const owned = state.ownedSkins.includes(skin.id);
-    const div = document.createElement('div');
-    div.className = 'skinItem' + (owned ? '' : ' locked');
-    const c = document.createElement('canvas');
-    c.width = 40; c.height = 40;
-    const cctx = c.getContext('2d');
-    cctx.fillStyle = skin.color;
-    cctx.beginPath(); cctx.arc(20,20,16,0,Math.PI*2); cctx.fill();
-    div.appendChild(c);
-    const label = document.createElement('div');
-    label.style.fontSize = '11px';
-    label.style.marginTop = '4px';
-    label.textContent = owned ? skin.name : (skin.name + ' (🪙' + skin.cost + ')');
-    div.appendChild(label);
-    div.addEventListener('click', () => {
-      if (owned) {
+    let div = document.createElement('div');
+    div.className = 'skinItem btn';
+    
+    let isOwned = state.ownedSkins.includes(skin.id);
+    let isSelected = state.currentSkin === skin.id;
+    
+    if (isSelected) div.classList.add('selected');
+    if (!isOwned) div.classList.add('locked');
+    
+    div.innerHTML = `
+      <div class="skinVisual">${skin.emoji}</div>
+      <div class="skinLabel">${skin.name}</div>
+      <div class="skinCost">${isOwned ? (isSelected ? 'Uso' : 'Pronto') : '🪙 ' + skin.cost}</div>
+    `;
+    
+    div.onclick = (e) => {
+      e.stopPropagation();
+      ensureAudio();
+      if (isOwned) {
         state.currentSkin = skin.id;
-        store.set('flapfoco_current_skin', skin.id);
-        renderShop();
-      } else if (state.coins >= skin.cost) {
-        state.coins -= skin.cost;
-        state.ownedSkins.push(skin.id);
-        store.set('flapfoco_coins', state.coins);
-        store.set('flapfoco_owned_skins', state.ownedSkins);
-        document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
-        renderShop();
+        saveState();
+        renderShopItems();
       } else {
-        Ads.showRewarded(() => {
-          state.coins += 30;
-          store.set('flapfoco_coins', state.coins);
-          document.getElementById('coinCount').textContent = '🪙 ' + state.coins;
-          renderShop();
-        });
+        if (state.coins >= skin.cost) {
+          state.coins -= skin.cost;
+          state.ownedSkins.push(skin.id);
+          state.currentSkin = skin.id;
+          saveState();
+          updateTopBar();
+          renderShopItems();
+          showAchievementToast('🐣 Visual Desbloqueado!');
+        } else {
+          alert('Moedas insuficientes!');
+        }
       }
-    });
-    row.appendChild(div);
+    };
+    
+    container.appendChild(div);
   });
 }
 
-document.getElementById('shopBtn').addEventListener('click', () => {
-  renderShop();
-  document.getElementById('shopScreen').classList.remove('hidden');
-});
-document.getElementById('closeShopBtn').addEventListener('click', () => {
-  document.getElementById('shopScreen').classList.add('hidden');
-});
+function renderMissions() {
+  ensureMissions();
+  const list = document.getElementById('missionsList');
+  list.innerHTML = "";
+  
+  state.missions.active.forEach(m => {
+    const def = MISSION_POOL.find(d => d.id === m.id);
+    if (!def) return;
+    
+    let pct = Math.min((m.progress / def.target) * 100, 100);
+    
+    let itemDiv = document.createElement('div');
+    itemDiv.className = 'missionItem';
+    itemDiv.innerHTML = `
+      <div class="mLabel"><span>${def.label}</span> <span>${m.progress}/${def.target}</span></div>
+      <div class="missionBarBg">
+        <div class="missionBarFill" style="width: ${pct}%"></div>
+      </div>
+      ${m.claimed ? '<div class="missionDone">✓ CONCLUÍDA (+'+def.reward+' moedas)</div>' : ''}
+    `;
+    list.appendChild(itemDiv);
+  });
+}
 
-// ---------- START ----------
-Ads.showBanner();
-loop();
+function renderStats() {
+  document.getElementById('statGames').innerText = state.totalGames;
+  document.getElementById('statPipes').innerText = state.totalPipes;
+  document.getElementById('statPerfects').innerText = state.totalPerfects;
+  
+  const lb = document.getElementById('leaderboardList');
+  lb.innerHTML = "";
+  
+  if (state.leaderboard.length === 0) {
+    lb.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.4);padding:10px;">Nenhuma partida registrada.</div>';
+  } else {
+    state.leaderboard.forEach((run, idx) => {
+      let r = document.createElement('div');
+      r.className = 'lbRow';
+      r.innerHTML = `<span>#${idx+1} &nbsp;&nbsp; ${run.date}</span> <strong>${run.score} pts</strong>`;
+      lb.appendChild(r);
+    });
+  }
+}
+
+// ---------- INTERFACE EVENTS ----------
+document.addEventListener('DOMContentLoaded', () => {
+  resize();
+  updateTopBar();
+  
+  // Dica flutuante aleatória no menu principal
+  document.getElementById('menuTip').innerText = MENU_TIPS[Math.floor(Math.random() * MENU_TIPS.length)];
+  
+  // Input Toque na tela para voar
+  window.addEventListener('touchstart', (e) => {
+    if (e.target.classList.contains('btn') || e.target.closest('.btn')) return;
+    startFlap();
+  }, { passive: true });
+  
+  window.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('btn') || e.target.closest('.btn')) return;
+    startFlap();
+  });
+  
+  // Botoes Menu
+  document.getElementById('playBtn').onclick = () => { startFlap(); };
+  
+  document.getElementById('shopBtn').onclick = () => {
+    document.getElementById('shopScreen').classList.remove('hidden');
+    renderShopItems();
+  };
+  document.getElementById('closeShopBtn').onclick = () => document.getElementById('shopScreen').classList.add('hidden');
+  
+  document.getElementById('missionsBtn').onclick = () => {
+    document.getElementById('missionsScreen').classList.remove('hidden');
+    renderMissions();
+  };
+  document.getElementById('closeMissionsBtn').onclick = () => document.getElementById('missionsScreen').classList.add('hidden');
+  
+  document.getElementById('statsBtn').onclick = () => {
+    document.getElementById('statsScreen').classList.remove('hidden');
+    renderStats();
+  };
+  document.getElementById('closeStatsBtn').onclick = () => document.getElementById('statsScreen').classList.add('hidden');
+  
+  // Toggle Música Rítmica Alternável
+  document.getElementById('musicBtn').onclick = () => {
+    state.musicOn = !state.musicOn;
+    saveState();
+    document.getElementById('musicLabel').innerText = state.musicOn ? "Música: On" : "Música: Off";
+    if (state.musicOn && gameRunning) startProceduralMusic();
+    else stopProceduralMusic();
+  };
+  
+  // Botões de GameOver
+  document.getElementById('reviveBtn').onclick = () => { executeReviveAction(); };
+  
+  document.getElementById('restartBtn').onclick = () => {
+    resetGameStructure();
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    startFlap();
+  };
+  
+  document.getElementById('menuBtn').onclick = () => {
+    resetGameStructure();
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('menuScreen').classList.remove('hidden');
+    document.getElementById('menuTip').innerText = MENU_TIPS[Math.floor(Math.random() * MENU_TIPS.length)];
+    updateTopBar();
+  };
+  
+  document.getElementById('shareBtn').onclick = () => {
+    let msg = `Marquei ${score} pontos no FlapFoco! Meu recorde atual é de ${state.best} pontos. Venha treinar seu foco também!`;
+    if (navigator.share) {
+      navigator.share({ title: 'FlapFoco', text: msg, url: window.location.href }).catch(()=>{});
+    } else {
+      navigator.clipboard.writeText(msg);
+      alert('Texto de compartilhamento copiado para a área de transferência!');
+    }
+  };
+  
+  // Configurações Iniciais da Interface de Texto de Música
+  document.getElementById('musicLabel').innerText = state.musicOn ? "Música: On" : "Música: Off";
+  
+  // Iniciar Loop Gráfico Principal
+  requestAnimationFrame(loop);
+});
 </script>
 </body>
 </html>
