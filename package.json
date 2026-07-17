@@ -1,16 +1,20 @@
 {
   "name": "flapfoco",
-  "version": "2.0.0",
-  "description": "FlapFoco - jogo estilo Flappy Bird com AdMob",
+  "version": "1.0.0",
+  "private": true,
   "scripts": {
     "sync": "npx cap sync android",
-    "build-apk": "cd android && ./gradlew assembleDebug"
+    "open:android": "npx cap open android",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "assets": "npx @capacitor/assets generate --android"
   },
   "dependencies": {
-    "@capacitor/core": "^6.1.0",
-    "@capacitor/android": "^6.1.0"
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor-community/admob": "^6.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.1.0"
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/assets": "^3.0.0"
   }
 }
