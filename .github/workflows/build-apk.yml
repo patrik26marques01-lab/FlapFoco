@@ -1,45 +1,48 @@
-name: Build FlapFoco APK
+name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch: {}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout do código
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Configurar Java (necessário pro Android)
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Instalar dependências
+      - name: Install dependencies
         run: npm install
 
-      - name: Adicionar plataforma Android (se ainda não existir)
+      - name: Add Android platform (only if missing)
         run: npx cap add android || true
 
-      - name: Sincronizar web -> Android
+      - name: Generate app icon from resources/icon.png
+        run: npx @capacitor/assets generate --android
+
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Dar permissão ao gradlew
-        run: chmod +x android/gradlew
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-      - name: Compilar APK (debug)
-        run: cd android && ./gradlew assembleDebug
-
-      - name: Enviar APK como artefato
+      - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: flapfoco-apk
+          name: flapfoco-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
