@@ -29,6 +29,15 @@ jobs:
       - name: Add Android platform (only if missing)
         run: npx cap add android || true
 
+      - name: Configure AdMob App ID in AndroidManifest.xml
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if ! grep -q "com.google.android.gms.ads.APPLICATION_ID" "$MANIFEST"; then
+            sed -i 's#</application>#    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-5597473845785969~5354474429"/>\n    </application>#' "$MANIFEST"
+          fi
+          echo "---- AndroidManifest.xml after patch ----"
+          cat "$MANIFEST"
+
       - name: Generate app icon from resources/icon.png
         run: npx @capacitor/assets generate --android
 
