@@ -456,8 +456,8 @@ async function initAds() {
       return;
     }
     debugLog('[ADS] native detected, loading plugin...');
-    const mod = await import('@capacitor-community/admob');
-    AdMobPlugin = mod.AdMob;
+    AdMobPlugin = window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob;
+    if (!AdMobPlugin) throw new Error('AdMob plugin not found on window.Capacitor.Plugins');
     await AdMobPlugin.initialize({ initializeForTesting: AD_CONFIG.testMode });
     adsReady = true;
     debugLog('[ADS] initialized OK, testMode=' + AD_CONFIG.testMode);
