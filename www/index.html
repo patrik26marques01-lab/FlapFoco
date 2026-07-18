@@ -300,7 +300,6 @@ h1 {
   </div>
 
   <div id="achievementPopup"></div>
-  <div id="adDebugPanel" style="position:absolute;left:8px;bottom:8px;max-width:280px;background:rgba(0,0,0,.7);color:#7cff6a;font-family:monospace;font-size:10px;padding:6px 8px;border-radius:8px;line-height:1.5;pointer-events:none;white-space:pre-wrap;"></div>
 </div>
 
 <script>
@@ -440,13 +439,8 @@ const AD_CONFIG = {
 
 let AdMobPlugin = null;
 let adsReady = false;
-let debugLines = [];
 function debugLog(msg) {
   console.log(msg);
-  debugLines.push(msg);
-  if (debugLines.length > 8) debugLines.shift();
-  const el = document.getElementById('adDebugPanel');
-  if (el) el.textContent = debugLines.join('\n');
 }
 
 async function initAds() {
