@@ -429,11 +429,76 @@ function bumpMissionCounter(key, amount) {
   store.set('flapfoco_coins', state.coins);
 }
 
-// ---------- ANALYTICS / ADS HOOKS ----------
+// ---------- ANALYTICS / ADS ----------
+// Real AdMob IDs (already registered in the AdMob console).
+// initializeForTesting stays true until the app is ready to publish for real —
+// this forces Google's SDK to always serve TEST creatives, even with real ad
+// unit IDs, so testing here never risks the AdMob account over invalid clicks.
+const AD_CONFIG = {
+  bannerId: 'ca-app-pub-5597473845785969/7557544470',
+  interstitialId: 'ca-app-pub-5597473845785969/7632163728',
+  rewardedId: 'ca-app-pub-5597473845785969/2379837047',
+  testMode: true
+};
+
+let AdMobPlugin = null;
+let adsReady = false;
+
+async function initAds() {
+  try {
+    if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
+      console.log('[ADS] not running inside the native app — ads stay simulated in the browser');
+      return;
+    }
+    const mod = await import('@capacitor-community/admob');
+    AdMobPlugin = mod.AdMob;
+    await AdMobPlugin.initialize({ initializeForTesting: AD_CONFIG.testMode });
+    adsReady = true;
+    console.log('[ADS] AdMob initialized, testMode =', AD_CONFIG.testMode);
+    prepareInterstitial();
+    prepareRewarded();
+  } catch (e) {
+    console.warn('[ADS] init failed, ads disabled for this session:', e);
+    adsReady = false;
+  }
+}
+
+async function prepareInterstitial() {
+  if (!adsReady) return;
+  try { await AdMobPlugin.prepareInterstitial({ adId: AD_CONFIG.interstitialId }); }
+  catch (e) { console.warn('[ADS] prepareInterstitial failed:', e); }
+}
+async function prepareRewarded() {
+  if (!adsReady) return;
+  try { await AdMobPlugin.prepareRewardVideoAd({ adId: AD_CONFIG.rewardedId }); }
+  catch (e) { console.warn('[ADS] prepareRewarded failed:', e); }
+}
+
 const Ads = {
-  showInterstitial() { console.log('[ADS] showInterstitial()'); },
-  showRewarded(onReward) { console.log('[ADS] showRewarded()'); setTimeout(onReward, 600); },
-  showBanner() { console.log('[ADS] showBanner()'); }
+  async showBanner() {
+    if (!adsReady) { console.log('[ADS] showBanner() — simulated'); return; }
+    try {
+      await AdMobPlugin.showBanner({ adId: AD_CONFIG.bannerId, adSize: 'BANNER', position: 'BOTTOM_CENTER', margin: 0 });
+    } catch (e) { console.warn('[ADS] showBanner failed:', e); }
+  },
+  async showInterstitial() {
+    if (!adsReady) { console.log('[ADS] showInterstitial() — simulated'); return; }
+    try {
+      await AdMobPlugin.showInterstitial();
+    } catch (e) {
+      console.warn('[ADS] showInterstitial failed:', e);
+    } finally {
+      prepareInterstitial(); // queue the next one regardless
+    }
+  },
+  showRewarded(onReward) {
+    if (!adsReady) { console.log('[ADS] showRewarded() — simulated'); setTimeout(onReward, 600); return; }
+    let rewarded = false;
+    AdMobPlugin.addListener('onRewardedVideoAdReward', () => { rewarded = true; onReward(); });
+    AdMobPlugin.showRewardVideoAd()
+      .catch(e => console.warn('[ADS] showRewarded failed:', e))
+      .finally(() => { prepareRewarded(); });
+  }
 };
 const Analytics = {
   log(event, params) { console.log('[ANALYTICS]', event, params || {}); }
@@ -1615,7 +1680,7 @@ document.getElementById('shareBtn').addEventListener('click', async () => {
 // ---------- START ----------
 resize();
 buildCity();
-Ads.showBanner();
+initAds().then(() => Ads.showBanner());
 requestAnimationFrame(loop);
 </script>
 </body>
