@@ -111,14 +111,28 @@ jobs:
       # (Settings -> Secrets and variables -> Actions on GitHub)
       # KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
 
-      - name: Decode signing keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      - name: Check if signing secrets are configured
+        id: check_signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "has_signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+            echo "No signing secrets found yet — skipping the release build for now."
+          fi
+
+      - name: Decode signing keystore
+        if: steps.check_signing.outputs.has_signing == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
           echo "keystore decoded to android/app/release.keystore"
 
       - name: Configure release signing in build.gradle
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: steps.check_signing.outputs.has_signing == 'true'
         run: |
           python3 - << 'PYEOF'
           import re, sys
@@ -162,7 +176,7 @@ jobs:
           PYEOF
 
       - name: Build signed release bundle (.aab) for the Play Store
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: steps.check_signing.outputs.has_signing == 'true'
         env:
           KEYSTORE_PATH: release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -174,7 +188,7 @@ jobs:
           ./gradlew bundleRelease
 
       - name: Upload release AAB as artifact
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: steps.check_signing.outputs.has_signing == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: flapfoco-release-aab
